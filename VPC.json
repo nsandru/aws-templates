@@ -1,0 +1,192 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description" : "VPC Network Settings and Private Route53 Zone",
+
+    "Parameters" : {
+        "KeyName": {
+            "Type" : "String",
+            "Description" : "EC2 KeyPair for SSH access"
+         },
+         "CidrBlock" : {
+             "Type" : "String",
+             "MinLength" : "4",
+             "MaxLength" : "8",
+             "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.",
+             "ConstraintDescription" : "Must be of the form x.x. where x is a number between 0 and 255",
+             "Description" : "The first 2 bytes of the CIDR Block"
+         },
+         "PublicSubnetCIDR" : {
+             "Type" : "String",
+             "MinLength" : "7",
+             "MaxLength" : "11",
+             "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})/(\\d{2})",
+             "ConstraintDescription" : "Must be of the form x.x/y where x is a number between 0 and 255 and y is a number between 17 and 32",
+             "Description" : "The last 2 bytes of the Public CIDR Block with Network Prefix"
+         },
+         "PrivateSubnetCIDR" : {
+             "Type" : "String",
+             "MinLength" : "7",
+             "MaxLength" : "11",
+             "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})/(\\d{2})",
+             "ConstraintDescription" : "Must be of the form x.x/y where x is a number between 0 and 255 and y is a number between 17 and 32",
+             "Description" : "The last 2 bytes of the Private CIDR Block with Network Prefix"
+         },
+         "PrivateDNSZone" : {
+             "Type" : "String",
+             "Description" : "Private DNS zone"
+         }
+    },
+
+    "Resources": {
+        "VPC": {
+            "Type": "AWS::EC2::VPC",
+            "Properties": {
+                "EnableDnsSupport": "true",
+                "EnableDnsHostnames": "true",
+                "CidrBlock": { "Fn::Join" : ["", [{"Ref": "CidrBlock"}, "0.0/16"]]}
+            }
+        },
+        "PublicSubnet": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "VPC"
+                },
+                "CidrBlock": {"Fn::Join" : ["", [{"Ref": "CidrBlock"}, {"Ref": "PublicSubnetCIDR"}]]}
+            }
+        },
+        "PrivateSubnet": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "VPC"
+                },
+                "CidrBlock": {"Fn::Join" : ["", [{"Ref": "CidrBlock"}, {"Ref": "PrivateSubnetCIDR"}]]}
+            }
+        },
+
+        "InternetGateway" : {
+            "Type" : "AWS::EC2::InternetGateway"
+        },
+
+        "AttachGateway" : {
+            "Type" : "AWS::EC2::VPCGatewayAttachment",
+            "Properties" : {
+                "VpcId": {
+                    "Ref": "VPC"
+                },
+                "InternetGatewayId" : {"Ref" : "InternetGateway" }
+            }
+        },
+
+        "ZoneEIP" : {
+            "Type" : "AWS::EC2::EIP",
+            "Properties" : {
+                "Domain" : "vpc"
+            }
+        },
+
+        "ZoneNAT" : {
+            "Type" : "AWS::EC2::NatGateway",
+            "Properties" : {
+                "AllocationId" : { "Fn::GetAtt" : ["ZoneEIP", "AllocationId"]},
+                "SubnetId" : { "Ref" : "PublicSubnet" }
+            }
+        },
+
+        "PublicRouteTable" : {
+            "Type" : "AWS::EC2::RouteTable",
+            "Properties" : { "VpcId" : {"Ref" : "VPC" }}
+        },
+
+        "PrivateRouteTable" : {
+            "Type" : "AWS::EC2::RouteTable",
+            "Properties" : { "VpcId" : {"Ref" : "VPC" }}
+        },
+
+        "PublicRoute" : {
+            "Type" : "AWS::EC2::Route",
+            "Properties" : {
+                "RouteTableId" : {"Ref" : "PublicRouteTable" },
+                "DestinationCidrBlock" : "0.0.0.0/0",
+                "GatewayId" : { "Ref" : "InternetGateway" }
+            }
+        },
+
+        "PrivateRoute" : {
+            "Type" : "AWS::EC2::Route",
+            "Properties" : {
+                "RouteTableId" : {"Ref" : "PrivateRouteTable" },
+                "DestinationCidrBlock" : "0.0.0.0/0",
+                "NatGatewayId" : { "Ref" : "ZoneNAT" }
+            }
+        },
+
+        "PublicSubnetRouteTableAssociation" : {
+            "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties" : {
+                "SubnetId" : { "Ref" : "PublicSubnet" },
+                "RouteTableId" : { "Ref" : "PublicRouteTable" }
+            }
+        },
+
+        "PrivateSubnetRouteTableAssociation" : {
+            "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties" : {
+                "SubnetId" : { "Ref" : "PrivateSubnet" },
+                "RouteTableId" : { "Ref" : "PrivateRouteTable" }
+            }
+        },
+
+        "DHCPOptions" : {
+            "Type" : "AWS::EC2::DHCPOptions",
+            "Properties" : {
+                "DomainName" : "PrivateDNSZone",
+                "DomainNameServers" : [ "AmazonProvidedDNS" ]
+            }
+        },
+
+        "DHCPOptionsAssociation" : {
+            "Type" : "AWS::EC2::VPCDHCPOptionsAssociation",
+            "Properties" : {
+                 "DhcpOptionsId" : { "Ref" : "DHCPOptions" },
+                 "VpcId" : {"Ref" : "VPC"}
+            }
+        },
+
+        "DNSPrivateZone" : {
+            "Type" : "AWS::Route53::HostedZone",
+            "Properties" : {
+                "HostedZoneConfig" : {"Comment" : "Private DNS Zone"},
+                "Name" : "PrivateDNSZone",
+                "VPCs" : [{
+                    "VPCId" : {"Ref" : "VPC"},
+                    "VPCRegion" : {"Ref" : "AWS::Region" }
+                }]
+            }
+        }
+    },
+
+    "Outputs" : {
+        "VpcId" : {
+                   "Value" : { "Ref" : "VPC" },
+                   "Description" : "VPC ID"
+        },
+        "PublicSubnet" : {
+                   "Value" : { "Ref" : "PublicSubnet" },
+                   "Description" : "Public Subnet ID"
+        },
+        "PrivateSubnet" : {
+                   "Value" : { "Ref" : "PrivateSubnet" },
+                   "Description" : "Private Subnet ID"
+        },
+        "ZoneEIP" : {
+                   "Value" : { "Ref" : "ZoneEIP" },
+                   "Description" : "Zone Elastic IP"
+        },
+        "DNSZone" : {
+                   "Value" : { "Ref" : "DNSPrivateZone" },
+                   "Description" : "Private DNS Zone ID"
+        }
+    }
+}
