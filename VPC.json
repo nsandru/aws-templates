@@ -6,35 +6,35 @@
         "KeyName": {
             "Type" : "String",
             "Description" : "EC2 KeyPair for SSH access"
-         },
-         "CidrBlock" : {
-             "Type" : "String",
-             "MinLength" : "4",
-             "MaxLength" : "8",
-             "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.",
-             "ConstraintDescription" : "Must be of the form x.x. where x is a number between 0 and 255",
-             "Description" : "The first 2 bytes of the CIDR Block"
-         },
-         "PublicSubnetCIDR" : {
-             "Type" : "String",
-             "MinLength" : "7",
-             "MaxLength" : "11",
-             "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})/(\\d{2})",
-             "ConstraintDescription" : "Must be of the form x.x/y where x is a number between 0 and 255 and y is a number between 17 and 32",
-             "Description" : "The last 2 bytes of the Public CIDR Block with Network Prefix"
-         },
-         "PrivateSubnetCIDR" : {
-             "Type" : "String",
-             "MinLength" : "7",
-             "MaxLength" : "11",
-             "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})/(\\d{2})",
-             "ConstraintDescription" : "Must be of the form x.x/y where x is a number between 0 and 255 and y is a number between 17 and 32",
-             "Description" : "The last 2 bytes of the Private CIDR Block with Network Prefix"
-         },
-         "PrivateDNSZone" : {
-             "Type" : "String",
-             "Description" : "Private DNS zone"
-         }
+        },
+        "CidrBlock" : {
+            "Type" : "String",
+            "MinLength" : "4",
+            "MaxLength" : "8",
+            "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.",
+            "ConstraintDescription" : "Must be of the form x.x. where x is a number between 0 and 255",
+            "Description" : "The first 2 bytes of the CIDR Block"
+        },
+        "PublicSubnetCIDR" : {
+            "Type" : "String",
+            "MinLength" : "7",
+            "MaxLength" : "11",
+            "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})/(\\d{2})",
+            "ConstraintDescription" : "Must be of the form x.x/y where x is a number between 0 and 255 and y is a number between 17 and 32",
+            "Description" : "The last 2 bytes of the Public CIDR Block with Network Prefix"
+        },
+        "PrivateSubnetCIDR" : {
+            "Type" : "String",
+            "MinLength" : "7",
+            "MaxLength" : "11",
+            "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})/(\\d{2})",
+            "ConstraintDescription" : "Must be of the form x.x/y where x is a number between 0 and 255 and y is a number between 17 and 32",
+            "Description" : "The last 2 bytes of the Private CIDR Block with Network Prefix"
+        },
+        "PrivateDNSZone" : {
+            "Type" : "String",
+            "Description" : "Private DNS zone"
+        }
     },
 
     "Resources": {
@@ -158,7 +158,7 @@
             "Type" : "AWS::Route53::HostedZone",
             "Properties" : {
                 "HostedZoneConfig" : {"Comment" : "Private DNS Zone"},
-                "Name" : "PrivateDNSZone",
+                "Name" : { "Ref" : "PrivateDNSZone" },
                 "VPCs" : [{
                     "VPCId" : {"Ref" : "VPC"},
                     "VPCRegion" : {"Ref" : "AWS::Region" }
@@ -168,23 +168,23 @@
     },
 
     "Outputs" : {
-        "VpcId" : {
+        "VpcID" : {
                    "Value" : { "Ref" : "VPC" },
                    "Description" : "VPC ID"
         },
-        "PublicSubnet" : {
+        "PublicSubnetID" : {
                    "Value" : { "Ref" : "PublicSubnet" },
                    "Description" : "Public Subnet ID"
         },
-        "PrivateSubnet" : {
-                   "Value" : { "Ref" : "PrivateSubnet" },
-                   "Description" : "Private Subnet ID"
+        "PublicRouteID" : {
+                   "Value" : { "Ref" : "PublicRoute" },
+                   "Description" : "Public Route ID"
         },
         "ZoneEIP" : {
                    "Value" : { "Ref" : "ZoneEIP" },
                    "Description" : "Zone Elastic IP"
         },
-        "DNSZone" : {
+        "DNSZoneID" : {
                    "Value" : { "Ref" : "DNSPrivateZone" },
                    "Description" : "Private DNS Zone ID"
         }

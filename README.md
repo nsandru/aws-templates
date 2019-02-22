@@ -29,9 +29,9 @@ Parameters:
 
 Outputs:
 
-* `VpcId` = The ID of the VPC
-* `PublicSubnet` = The ID of the Public subnet
-* `PrivateSubnet` = The ID of the Private subnet
+* `VpcID` = The ID of the VPC
+* `PublicSubnetID` = The ID of the Public subnet
+* `PrivateSubnetID` = The ID of the Private subnet
 * `ZoneIP` = The IPv4 address of the Elastic IP associated with the VPC
-* `DNSZone` = The Route53 ID of the private DNS zone
+* `DNSZoneID` = The Route53 ID of the private DNS zone
 
